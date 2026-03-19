@@ -1,4 +1,4 @@
-package org.training.sequence.generator.reporitory;
+package org.training.sequence.generator.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;

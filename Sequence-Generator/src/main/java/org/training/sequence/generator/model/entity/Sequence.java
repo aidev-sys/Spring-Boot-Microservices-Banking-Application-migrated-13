@@ -5,12 +5,10 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import javax.persistence.Entity;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
+import jakarta.persistence.*;
 
 @Entity
+@Table(name = "sequences")
 @Data
 @Builder
 @AllArgsConstructor
@@ -19,7 +17,8 @@ public class Sequence {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private long sequenceId;
+    private Long sequenceId;
 
-    private long accountNumber;
+    @Column(name = "account_number")
+    private Long accountNumber;
 }

@@ -25,4 +25,3 @@ public class UserDto {
 
     private String authId;
 }
-

@@ -1,56 +1,40 @@
 package org.training.user.service.config;
 
 import lombok.extern.slf4j.Slf4j;
-import org.keycloak.admin.client.Keycloak;
-import org.keycloak.admin.client.KeycloakBuilder;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 
 @Slf4j
-@Component
-public class KeyCloakProperties {
+@Configuration
+@PropertySource("classpath:application.properties")
+public class PostgresProperties {
 
-    @Value("${app.config.keycloak.server-url}")
-    private String serverUrl;
+    @Value("${spring.datasource.url}")
+    private String url;
 
-    @Value("${app.config.keycloak.realm}")
-    private String realm;
+    @Value("${spring.datasource.username}")
+    private String username;
 
-    @Value("${app.config.keycloak.client-id}")
-    private String clientId;
+    @Value("${spring.datasource.password}")
+    private String password;
 
-    @Value("${app.config.keycloak.client-secret}")
-    private String clientSecret;
+    @Value("${spring.datasource.driver-class-name}")
+    private String driverClassName;
 
-    private static Keycloak keycloakInstance = null;
-
-    /**
-     * Returns an instance of Keycloak.
-     * If the instance is null, it creates a new instance using the provided configuration.
-     *
-     * @return The Keycloak instance
-     */
-    public Keycloak getKeycloakInstance() {
-
-        if (keycloakInstance == null) {
-            keycloakInstance = KeycloakBuilder.builder()
-                    .serverUrl(serverUrl)
-                    .realm(realm)
-                    .clientId(clientId)
-                    .clientSecret(clientSecret)
-                    .grantType("client_credentials")
-                    .build();
-        }
-
-        return keycloakInstance;
+    public String getUrl() {
+        return url;
     }
 
-    /**
-     * Returns the realm.
-     *
-     * @return the realm
-     */
-    public String getRealm() {
-        return realm;
+    public String getUsername() {
+        return username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public String getDriverClassName() {
+        return driverClassName;
     }
 }

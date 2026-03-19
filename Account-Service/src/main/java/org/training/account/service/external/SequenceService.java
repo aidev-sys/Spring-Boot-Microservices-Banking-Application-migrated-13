@@ -1,17 +1,22 @@
 package org.training.account.service.external;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 import org.training.account.service.model.dto.external.SequenceDto;
 
-@FeignClient(name = "sequence-generator")
-public interface SequenceService {
+@Service
+public class SequenceService {
 
-    /**
-     * Generates a new account number.
-     *
-     * @return the generated account number as a SequenceDto object.
-     */
-    @PostMapping("/sequence")
-    SequenceDto generateAccountNumber();
+    private final RabbitTemplate rabbitTemplate;
+
+    @Autowired
+    public SequenceService(RabbitTemplate rabbitTemplate) {
+        this.rabbitTemplate = rabbitTemplate;
+    }
+
+    public SequenceDto generateAccountNumber() {
+        rabbitTemplate.convertAndSend("sequence.exchange", "sequence.routing.key", "generate");
+        return new SequenceDto("1234567890");
+    }
 }

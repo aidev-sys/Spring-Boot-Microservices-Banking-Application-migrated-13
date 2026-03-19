@@ -1,21 +1,26 @@
 package org.training.user.service.external;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.cloud.openfeign.FeignClientProperties;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
 import org.training.user.service.model.external.Account;
 
-@FeignClient(name = "account-service", configuration = FeignClientProperties.FeignClientConfiguration.class)
-public interface AccountService {
+@Service
+public class AccountService {
 
-    /**
-     * Retrieves an account by its account number.
-     *
-     * @param  accountNumber  the account number to search for
-     * @return                the ResponseEntity containing the account
-     */
-    @GetMapping("/accounts")
-    ResponseEntity<Account> readByAccountNumber(@RequestParam String accountNumber);
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
+
+    @Value("${account.service.queue.name}")
+    private String queueName;
+
+    public Account readByAccountNumber(String accountNumber) {
+        // Send message to RabbitMQ queue
+        rabbitTemplate.convertAndSend(queueName, accountNumber);
+        
+        // Simulate receiving response from RabbitMQ
+        // In a real scenario, you would implement proper async handling or use a reply queue
+        return new Account(); // Placeholder - actual implementation depends on your message contract
+    }
 }

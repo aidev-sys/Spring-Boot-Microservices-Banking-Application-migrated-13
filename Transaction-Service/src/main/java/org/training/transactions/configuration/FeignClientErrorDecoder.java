@@ -2,69 +2,79 @@ package org.training.transactions.configuration;
 
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import feign.Response;
-import feign.codec.ErrorDecoder;
 import lombok.extern.slf4j.Slf4j;
-import org.apache.commons.io.IOUtils;
+import org.postgresql.util.PSQLException;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.BadSqlGrammarException;
+import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.training.transactions.exception.GlobalException;
 
 import java.io.IOException;
-import java.io.Reader;
-import java.nio.charset.StandardCharsets;
+import java.sql.SQLException;
 
 @Slf4j
-public class FeignClientErrorDecoder implements ErrorDecoder {
+@RestControllerAdvice
+public class GlobalExceptionHandler {
 
-    /**
-     * Decodes the response and returns an Exception based on the status code.
-     *
-     * @param s        The string representation of the response.
-     * @param response The HTTP response.
-     * @return An Exception based on the status code.
-     */
-    @Override
-    public Exception decode(String s, Response response) {
-
-        GlobalException globalException = extractGlobalException(response);
-
-        switch (response.status()) {
-            case 404, 400 -> {
-                return globalException;
-            }
-            default -> {
-                return new Exception("common feign exception");
-            }
-        }
+    @ExceptionHandler(DataAccessException.class)
+    public ResponseEntity<GlobalException> handleDataAccessException(DataAccessException ex) {
+        log.error("Data access exception occurred", ex);
+        GlobalException globalException = new GlobalException();
+        globalException.setMessage("Database error occurred");
+        globalException.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(globalException, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    /**
-     * Extracts a GlobalException object from the response body.
-     *
-     * @param response the response object
-     * @return the GlobalException object extracted from the response body
-     */
-    private GlobalException extractGlobalException(Response response) {
+    @ExceptionHandler(BadSqlGrammarException.class)
+    public ResponseEntity<GlobalException> handleBadSqlGrammarException(BadSqlGrammarException ex) {
+        log.error("SQL grammar error occurred", ex);
+        GlobalException globalException = new GlobalException();
+        globalException.setMessage("Invalid SQL query");
+        globalException.setStatusCode(HttpStatus.BAD_REQUEST.value());
+        return new ResponseEntity<>(globalException, HttpStatus.BAD_REQUEST);
+    }
 
-        GlobalException globalException = null;
-        Reader reader = null;
+    @ExceptionHandler(EmptyResultDataAccessException.class)
+    public ResponseEntity<GlobalException> handleEmptyResultDataAccessException(EmptyResultDataAccessException ex) {
+        log.warn("No data found for the given request", ex);
+        GlobalException globalException = new GlobalException();
+        globalException.setMessage("No data found");
+        globalException.setStatusCode(HttpStatus.NOT_FOUND.value());
+        return new ResponseEntity<>(globalException, HttpStatus.NOT_FOUND);
+    }
 
-        try {
-            reader = response.body().asReader(StandardCharsets.UTF_8);
-            String result = IOUtils.toString(reader);
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
-            globalException = mapper.readValue(result, GlobalException.class);
-        } catch (IOException e) {
-            log.error("IO exception on reading exception message", e);
-        } finally {
-            if (reader != null) {
-                try {
-                    reader.close();
-                } catch (IOException e) {
-                    log.error("IO exception on reading exception message", e);
-                }
-            }
+    @ExceptionHandler(SQLException.class)
+    public ResponseEntity<GlobalException> handleSQLException(SQLException ex) {
+        log.error("SQL exception occurred", ex);
+        GlobalException globalException = new GlobalException();
+        if (ex instanceof PSQLException psqlEx) {
+            globalException.setMessage(psqlEx.getMessage());
+        } else {
+            globalException.setMessage("Database operation failed");
         }
-        return globalException;
+        globalException.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(globalException, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(IOException.class)
+    public ResponseEntity<GlobalException> handleIOException(IOException ex) {
+        log.error("IO exception occurred while processing request", ex);
+        GlobalException globalException = new GlobalException();
+        globalException.setMessage("Error processing request");
+        globalException.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(globalException, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<GlobalException> handleGenericException(Exception ex) {
+        log.error("Unexpected error occurred", ex);
+        GlobalException globalException = new GlobalException();
+        globalException.setMessage("An unexpected error occurred");
+        globalException.setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
+        return new ResponseEntity<>(globalException, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

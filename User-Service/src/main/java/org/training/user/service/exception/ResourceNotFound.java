@@ -1,6 +1,6 @@
 package org.training.user.service.exception;
 
-public class ResourceNotFound extends GlobalException{
+public class ResourceNotFound extends GlobalException {
 
     public ResourceNotFound() {
         super("Resource not found on the server", GlobalError.NOT_FOUND);

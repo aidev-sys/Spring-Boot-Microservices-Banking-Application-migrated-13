@@ -1,47 +1,45 @@
 package org.training.user.service.service;
 
-import org.keycloak.representations.idm.UserRepresentation;
+import org.training.user.service.model.User;
+import org.training.user.service.repository.UserRepository;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
-public interface KeycloakService {
+@Service
+public class UserService {
 
-    /**
-     * Creates a new user with the provided user representation.
-     *
-     * @param  userRepresentation  the user representation object containing the user details
-     * @return                     the ID of the newly created user
-     */
-    Integer createUser(UserRepresentation userRepresentation);
+    @Autowired
+    private UserRepository userRepository;
 
-    /**
-     * Retrieves a list of user representations based on the provided email ID.
-     *
-     * @param  emailId  the email ID of the user(s) to retrieve
-     * @return          a list of user representations matching the provided email ID
-     */
-    List<UserRepresentation> readUserByEmail(String emailId);
+    @Autowired
+    private RabbitTemplate rabbitTemplate;
 
-    /**
-     * Retrieves a list of user representations based on the provided authentication IDs.
-     *
-     * @param  authIds  a list of authentication IDs used to identify the users
-     * @return          a list of user representations
-     */
-    List<UserRepresentation> readUsers(List<String> authIds);
+    public Integer createUser(User user) {
+        User savedUser = userRepository.save(user);
+        rabbitTemplate.convertAndSend("user.created", savedUser);
+        return savedUser.getId();
+    }
 
-    /**
-     * Reads a user representation based on the provided authentication ID.
-     *
-     * @param  authId the authentication ID of the user
-     * @return        the user representation
-     */
-    UserRepresentation readUser(String authId);
+    public List<User> readUserByEmail(String emailId) {
+        return userRepository.findByEmail(emailId);
+    }
 
-    /**
-     * Updates the user with the provided user representation.
-     *
-     * @param  userRepresentation  the user representation object containing the updated user details
-     */
-    void updateUser(UserRepresentation userRepresentation);
+    public List<User> readUsers(List<String> authIds) {
+        return userRepository.findByIdIn(authIds);
+    }
+
+    public User readUser(String authId) {
+        Optional<User> user = userRepository.findById(authId);
+        return user.orElse(null);
+    }
+
+    public void updateUser(User user) {
+        userRepository.save(user);
+        rabbitTemplate.convertAndSend("user.updated", user);
+    }
 }

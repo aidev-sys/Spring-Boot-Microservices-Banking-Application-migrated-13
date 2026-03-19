@@ -9,11 +9,10 @@ import org.training.user.service.model.entity.UserProfile;
 
 import java.util.Objects;
 
-public class UserMapper extends BaseMapper<User, UserDto>{
+public class UserMapper {
 
     private final ModelMapper mapper = new ModelMapper();
 
-    @Override
     public User convertToEntity(UserDto dto, Object... args) {
 
         User user = new User();
@@ -28,7 +27,6 @@ public class UserMapper extends BaseMapper<User, UserDto>{
         return user;
     }
 
-    @Override
     public UserDto convertToDto(User entity, Object... args) {
 
         UserDto userDto = new UserDto();

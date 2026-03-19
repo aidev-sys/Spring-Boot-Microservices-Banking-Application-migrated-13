@@ -1,21 +1,20 @@
 package org.training.account.service.external;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.training.account.service.configuration.FeignConfiguration;
+import org.springframework.stereotype.Service;
 import org.training.account.service.model.dto.external.UserDto;
+import org.training.account.service.repository.UserRepository;
 
-@FeignClient(name = "user-service", configuration = FeignConfiguration.class)
-public interface UserService {
+@Service
+public class UserService {
 
-    /**
-     * Retrieves a user by their ID.
-     *
-     * @param userId the ID of the user to retrieve
-     * @return a ResponseEntity containing the user DTO if found, or an empty body with a not found status code
-     */
-    @GetMapping("/api/users/{userId}")
-    ResponseEntity<UserDto> readUserById(@PathVariable Long userId);
+    private final UserRepository userRepository;
+
+    public UserService(UserRepository userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    public UserDto readUserById(Long userId) {
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+    }
 }

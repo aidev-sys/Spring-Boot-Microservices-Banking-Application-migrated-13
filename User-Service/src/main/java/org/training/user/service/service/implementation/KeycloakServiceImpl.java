@@ -1,32 +1,31 @@
 package org.training.user.service.service.implementation;
 
 import lombok.RequiredArgsConstructor;
-import org.keycloak.admin.client.resource.UserResource;
-import org.keycloak.admin.client.resource.UsersResource;
-import org.keycloak.representations.idm.UserRepresentation;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
-import org.training.user.service.config.KeyCloakManager;
-import org.training.user.service.service.KeycloakService;
+import org.training.user.service.config.RabbitMQConfig;
+import org.training.user.service.service.PostgresService;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
-public class KeycloakServiceImpl implements KeycloakService {
+public class PostgresServiceImpl implements PostgresService {
 
-    private final KeyCloakManager keyCloakManager;
+    private final RabbitTemplate rabbitTemplate;
 
     /**
-     * Creates a new user in the KeyCloak system.
+     * Creates a new user in the Postgres database.
      *
      * @param  userRepresentation  the user representation object containing the user details
      * @return                     the status code indicating the success or failure of the user creation
      */
     @Override
-    public Integer createUser(UserRepresentation userRepresentation) {
+    public Integer createUser(Object userRepresentation) {
 
-        return keyCloakManager.getKeyCloakInstanceWithRealm().users().create(userRepresentation).getStatus();
+        rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_CREATE_ROUTING_KEY, userRepresentation);
+        return 201;
     }
 
     /**
@@ -36,9 +35,11 @@ public class KeycloakServiceImpl implements KeycloakService {
      * @return          a list of UserRepresentation objects
      */
     @Override
-    public List<UserRepresentation> readUserByEmail(String emailId) {
+    public List<Object> readUserByEmail(String emailId) {
 
-        return keyCloakManager.getKeyCloakInstanceWithRealm().users().search(emailId);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_READ_BY_EMAIL_ROUTING_KEY, emailId);
+        // Simulate response from Postgres
+        return List.of();
     }
 
     /**
@@ -48,12 +49,11 @@ public class KeycloakServiceImpl implements KeycloakService {
      * @return          a list of user representations
      */
     @Override
-    public List<UserRepresentation> readUsers(List<String> authIds) {
+    public List<Object> readUsers(List<String> authIds) {
 
-        return authIds.stream().map(authId -> {
-            UserResource usersResource = keyCloakManager.getKeyCloakInstanceWithRealm().users().get(authId);
-            return usersResource.toRepresentation();
-        }).collect(Collectors.toList());
+        rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_READ_BATCH_ROUTING_KEY, authIds);
+        // Simulate response from Postgres
+        return List.of();
     }
 
     /**
@@ -63,11 +63,11 @@ public class KeycloakServiceImpl implements KeycloakService {
      * @return         the user representation object
      */
     @Override
-    public UserRepresentation readUser(String authId) {
+    public Object readUser(String authId) {
 
-        UsersResource userResource = keyCloakManager.getKeyCloakInstanceWithRealm().users();
-
-        return userResource.get(authId).toRepresentation();
+        rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_READ_BY_ID_ROUTING_KEY, authId);
+        // Simulate response from Postgres
+        return new Object();
     }
 
     /**
@@ -76,9 +76,8 @@ public class KeycloakServiceImpl implements KeycloakService {
      * @param  userRepresentation  the user representation to update the user with
      */
     @Override
-    public void updateUser(UserRepresentation userRepresentation) {
+    public void updateUser(Object userRepresentation) {
 
-        keyCloakManager.getKeyCloakInstanceWithRealm().users()
-                .get(userRepresentation.getId()).update(userRepresentation);
+        rabbitTemplate.convertAndSend(RabbitMQConfig.USER_EXCHANGE, RabbitMQConfig.USER_UPDATE_ROUTING_KEY, userRepresentation);
     }
 }
